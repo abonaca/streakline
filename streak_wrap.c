@@ -73,10 +73,11 @@ static PyObject *streakline_stream(PyObject *self, PyObject *args)
 	
 	// Set up return array pointers
 	double *xm1, *xm2, *xm3, *xp1, *xp2, *xp3, *vm1, *vm2, *vm3, *vp1, *vp2, *vp3;
-	int nd=1, dims[2];
+	int nd=1;
+// 	npy_intp *dims;
+// 	dims[0] = Ne;
+	npy_intp dims[2];
 	dims[0] = Ne;
-// 	np_intp dims_np[2];
-// 	dims_np[0] = Ne;
 	PyArrayObject *py_xm1, *py_xm2, *py_xm3, *py_xp1, *py_xp2, *py_xp3, *py_vm1, *py_vm2, *py_vm3, *py_vp1, *py_vp2, *py_vp3;
 	
 	// Python arrays

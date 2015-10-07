@@ -75,21 +75,23 @@ static PyObject *streakline_stream(PyObject *self, PyObject *args)
 	double *xm1, *xm2, *xm3, *xp1, *xp2, *xp3, *vm1, *vm2, *vm3, *vp1, *vp2, *vp3;
 	int nd=1, dims[2];
 	dims[0] = Ne;
+// 	np_intp dims_np[2];
+// 	dims_np[0] = Ne;
 	PyArrayObject *py_xm1, *py_xm2, *py_xm3, *py_xp1, *py_xp2, *py_xp3, *py_vm1, *py_vm2, *py_vm3, *py_vp1, *py_vp2, *py_vp3;
 	
 	// Python arrays
-	py_xm1 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_xm2 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_xm3 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_xp1 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_xp2 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_xp3 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vm1 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vm2 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vm3 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vp1 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vp2 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
-	py_vp3 = (PyArrayObject*) PyArray_FromDims(nd, dims, NPY_DOUBLE);
+	py_xm1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_xm2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_xm3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_xp1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_xp2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_xp3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vm1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vm2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vm3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vp1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vp2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_vp3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
 	
 	// Pointers to C arrays
 	xm1 = pyvector_to_Carrayptrs(py_xm1);

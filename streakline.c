@@ -431,13 +431,13 @@ void force(double *x, double *a, double *par, int potential)
 // 		a[0]+=aux*x[0];
 // 		a[1]+=aux*x[1];
 // 		a[2]+=aux*x[2]/par[6];
-		r=sqrt(par[5]*x[0]*x[0] + par[6]*x[1]*x[1] + par[7]*x[0]*x[1] + par[8]*x[2]*x[2]);
-		aux=0.5 * par[4]*pow(r,-3) * (1./(1.+par[9]/r)-log(1.+r/par[9]));
+		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
+		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
 // 		printf("%e\t%e\t%e\n", r/par[5],r, aux);
 		
-		a[0]+=aux*(2*par[5]*x[0] + par[7]*x[1]);
-		a[1]+=aux*(2*par[6]*x[1] + par[7]*x[0]);
-		a[2]+=aux*(2*par[8]*x[2]);
+		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
+		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
+		a[2]+=aux*(2*par[9]*x[2]);
 		
 // 		printf("%e, %e, %e %e %e\n", a[0], x[0], r, par[5], par[7]);
 		

@@ -4,14 +4,17 @@
 
 /* Docstrings */
 static char module_docstring[] = "This module provides an interface for running a leapfrog orbit integrator using C.";
-static char stream_docstring[] = "Calculate orbit in a point mass potential given the inital position and velocity.";
+static char stream_docstring[] = "Calculate positions and velocities of a streakline stream, given the progenitor initial position and gravitational potential.";
+static char orbit_docstring[] = "Calculate orbit in a parameterized potential given the inital position and velocity.";
     
 /* Available functions */
 static PyObject *streakline_stream(PyObject *self, PyObject *args);
+static PyObject *streakline_orbit(PyObject *self, PyObject *args);
 
 /* Module specification */
 static PyMethodDef module_methods[] = {
 	{"stream", streakline_stream, METH_VARARGS, stream_docstring},
+	{"orbit", streakline_orbit, METH_VARARGS, orbit_docstring},
 	{NULL, NULL, 0, NULL}
 };
 
@@ -134,6 +137,96 @@ static PyObject *streakline_stream(PyObject *self, PyObject *args)
 	Py_XDECREF(py_vp1);
 	Py_XDECREF(py_vp2);
 	Py_XDECREF(py_vp3);
+	
+	// Return positions, velocities and energy as a function of time
+	return out;
+}
+
+static PyObject *streakline_orbit(PyObject *self, PyObject *args)
+{
+	int N, err, potential, integrator;
+	double *x0, *v0, *par, dt_, direction;
+	PyObject *par_obj, *par_array, *x0_obj, *x0_array, *v0_obj, *v0_array;
+
+	// Parse the input tuple
+	if (!PyArg_ParseTuple(args, "OOOiiidd", &x0_obj, &v0_obj, &par_obj, &potential, &integrator, &N, &dt_, &direction))	// reads in input parameters
+		return NULL;
+// 	Ne=ceil((float)N/(float)M);
+	
+	// Interpret the input parameters as numpy arrays
+	par_array = PyArray_FROM_OTF(par_obj, NPY_DOUBLE, NPY_IN_ARRAY);
+	x0_array = PyArray_FROM_OTF(x0_obj, NPY_DOUBLE, NPY_IN_ARRAY);
+	v0_array = PyArray_FROM_OTF(v0_obj, NPY_DOUBLE, NPY_IN_ARRAY);
+	
+	//If that didn't work, throw an exception
+	if (par_array == NULL) {
+		Py_XDECREF(par_array);
+		return NULL;
+	}
+	if (x0_array == NULL) {
+		Py_XDECREF(x0_array);
+		return NULL;
+	}
+	if (v0_array == NULL) {
+		Py_XDECREF(v0_array);
+		return NULL;
+	}
+	// How many parameters are there?
+// 	int Npar = (int)PyArray_DIM(par_array, 0);
+
+	//Get pointers to the data as C-types. */
+	par = (double*)PyArray_DATA(par_array);
+	x0 = (double*)PyArray_DATA(x0_array);
+	v0 = (double*)PyArray_DATA(v0_array);
+	
+	// Set up return array pointers
+	double *x1, *x2, *x3, *v1, *v2, *v3;
+	int nd=1;
+// 	npy_intp *dims;
+// 	dims[0] = Ne;
+	npy_intp dims[2];
+	dims[0] = N;
+	PyArrayObject *py_x1, *py_x2, *py_x3, *py_v1, *py_v2, *py_v3;
+	
+	// Python arrays
+	py_x1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_x2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_x3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_v1 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_v2 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	py_v3 = (PyArrayObject*) PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+	
+	// Pointers to C arrays
+	x1 = pyvector_to_Carrayptrs(py_x1);
+	x2 = pyvector_to_Carrayptrs(py_x2);
+	x3 = pyvector_to_Carrayptrs(py_x3);
+	v1 = pyvector_to_Carrayptrs(py_v1);
+	v2 = pyvector_to_Carrayptrs(py_v2);
+	v3 = pyvector_to_Carrayptrs(py_v3);
+
+	// Call the external C function to calculate the geostationary orbit.
+// 	printf("before %lf", x1[0]);
+	err = orbit(x0, v0, x1, x2, x3, v1, v2, v3, par, potential, integrator, N, dt_, direction);
+	
+// 	printf("after %lf %d", x1[0]);
+
+	// Check if error raised
+	if(err!=0) {
+		PyErr_SetString(PyExc_RuntimeError, "Error occured in the leapfrog integrator.");
+		return NULL;
+	}
+	
+	// Store return array
+	PyObject *out = Py_BuildValue("OOOOOO", py_x1, py_x2, py_x3, py_v1, py_v2, py_v3);
+	
+	// Clean up
+	Py_XDECREF(par_array);
+	Py_XDECREF(py_x1);
+	Py_XDECREF(py_x2);
+	Py_XDECREF(py_x3);
+	Py_XDECREF(py_v1);
+	Py_XDECREF(py_v2);
+	Py_XDECREF(py_v3);
 	
 	// Return positions, velocities and energy as a function of time
 	return out;

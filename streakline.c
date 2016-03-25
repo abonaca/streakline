@@ -232,6 +232,78 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 	return 0;
 } 
 
+int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1, double *v2, double *v3, double *par, int potential, int integrator, int N, double dt_, double direction)
+{
+	int i, Napar, imin=0;
+	double x[3], v[3];
+	
+	// Initial position and velocities
+	t2t(x0, x);
+	t2t(v0, v);
+	
+	// Set up actual potential parameters;
+	if(potential==1){
+		Napar=3;
+	}else if(potential==2 || potential==3){
+		Napar=6;
+	}else if(potential==4){
+		Napar=11;
+	}else if(potential==5){
+		Napar=4;
+	}else{
+		Napar=1;
+	}
+	double apar[Napar];
+	initpar(potential, par, apar);
+	
+	// Integrator switch
+	void (*pt2dostep)(double*, double*, double*, int, double, double) = NULL;
+	
+	if(integrator==0){
+		// Leapfrog
+		pt2dostep=&dostep;
+	}
+	else if(integrator==1){
+		// Runge-Kutta
+		pt2dostep=&dostep_rk;
+	}
+	
+	// Time step
+	dt = dt_;
+	
+	///////////////////////////////////////
+	// Backward integration (cluster only)
+	
+	if(integrator==0){
+// 		printf("%f\n", v[0]);
+// 		printf("%e %e %e %e %e %e\n", x[0], x[1], x[2], v[0], v[1], v[2]);
+		dostep1(x,v,apar,potential,dt,direction);
+		
+		// Record
+		t2n(x, x1, x2, x3, 0);
+		t2n(v, v1, v2, v3, 0);
+// 		printf("%e %e %e %e %e %e\n", x[0], x[1], x[2], v[0], v[1], v[2]);
+		imin=1;
+	}
+	for(i=imin;i<N;i++){
+		(*pt2dostep)(x,v,apar,potential,dt,direction);
+		
+		// Record
+		t2n(x, x1, x2, x3, i);
+		t2n(v, v1, v2, v3, i);
+// 		printf("%f\t", x[0]);
+	}
+	if(integrator==0){
+		dostep1(x,v,apar,potential,dt,direction);
+		
+		// Record
+		t2n(x, x1, x2, x3, N-1);
+		t2n(v, v1, v2, v3, N-1);
+	}
+	
+	return 0;
+}
+
 void dostep(double *x, double *v, double *par, int potential, double deltat, double sign)
 {	// Evolve point particle from x0, v0, for a time deltat in a given potential
 	// evolve forward for sign=1, backwards for sign=-1
@@ -551,7 +623,7 @@ void initpar(int potential, double *par, double *apar)
 }
 
 double jacobi(double *x, double *v, double *par, int potential, double Mcl)
-{	// Jacobi radius of a cluster (mass defined in the header)
+{	// Jacobi radius of a cluster
 	// at the position x, velocity v, and in a given potential
 	int i;
 	double R, om, dpot, delta, r;

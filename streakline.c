@@ -519,7 +519,13 @@ void initpar(int potential, double *par, double *apar)
 		// Composite Galactic potential featuring a disk, bulge, and flattened NFW halo (from Johnston/Law/Majewski/Helmi)
 		// par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z]
 		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo]
-		double cosphi, sinphi;
+		double cosphi, sinphi; //, tq, tphi;
+		
+		//tq = sqrt(par[7]*par[7] + par[8]*par[8]);
+		//tphi = atan(par[8]/par[7]);
+		//par[7] = tphi;
+		//par[8] = tq;
+		//printf("%f %f\n", par[7], par[8]);
 		
 		apar[0]=G*par[0];
 		apar[1]=par[1];

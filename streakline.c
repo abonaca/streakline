@@ -245,18 +245,22 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
 	t2t(x0, x);
 	t2t(v0, v);
 	
-	// Set up actual potential parameters;
-	if(potential==1){
-		Napar=3;
-	}else if(potential==2 || potential==3){
-		Napar=6;
-	}else if(potential==4){
-		Napar=11;
-	}else if(potential==5){
-		Napar=4;
-	}else{
-		Napar=1;
-	}
+    // Set up actual potential parameters;
+    if(potential==1){
+        Napar=3;
+    }else if(potential==2 || potential==3){
+        Napar=6;
+    }else if(potential==4){
+        Napar=11;
+    }else if(potential==5){
+        Napar=4;
+    }else if(potential==6){
+        Napar=15;
+    }else if(potential==7){
+        Napar=13;
+    }else{
+        Napar=1;
+    }
 	double apar[Napar];
 	initpar(potential, par, apar);
 	

@@ -61,6 +61,8 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 	}else if(potential==5){
 		Napar=4;
 	}else if(potential==6){
+        Napar=15;
+    }else if(potential==7){
         Napar=13;
     }else{
 		Napar=1;
@@ -326,7 +328,7 @@ void dostep(double *x, double *v, double *par, int potential, double deltat, dou
 		for(j=0;j<3;j++)
 			xt[j]=x[j]+dts*v[j];
 		force(xt, at, par, potential);
-        if(potential==6) par[12]+=dts;
+        if(potential==7) par[12]+=dts;
 // 		printf("acc: %e\t%e\n", at[0], at[1]);
 // 		printf("v0: %e\t%e\n", v[0], dts*at[0]);
 // 		printf("v1: %e\t%e\n", v[1], dts*at[1]);
@@ -350,7 +352,7 @@ void dostep1(double *x, double *v, double *par, int potential, double deltat, do
 	
 	dts=sign*dt;
 	force(x, a, par, potential);
-    if(potential==6) par[12]+=dts;
+    if(potential==7) par[12]+=dts;
 
 	v[0]=v[0]+0.5*dts*a[0];
 	v[1]=v[1]+0.5*dts*a[1];
@@ -433,7 +435,7 @@ void dostep_stream(double *xc, double *x, double *v, double *par, int potential,
 	}
 }
 
-void force(double *x, double *a, double *par, int potential)
+void force(double *x, double *a, double *par, int potential, double t)
 {
 	int i;
 	double r, aux, aux2;
@@ -492,7 +494,7 @@ void force(double *x, double *a, double *par, int potential)
 		a[1]=aux*x[1];
 		a[2]=aux*x[2];
 		
-		//Miyamato disk
+		//Miyamoto-Nagai disk
 		aux2=sqrt(x[2]*x[2] + par[4]);
 		r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
 		aux=-par[2]/(r*r*r);
@@ -502,15 +504,9 @@ void force(double *x, double *a, double *par, int potential)
 		a[2]+=aux*x[2]*(par[3] + aux2)/aux2;
 		
 		//Triaxial NFW Halo
-// 		r=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]/par[6]);
-// 		aux=par[5]*pow(r,-3) * (1./(1.+par[7]/r)-log(1.+r/par[7]));
-// 		
-// 		a[0]+=aux*x[0];
-// 		a[1]+=aux*x[1];
-// 		a[2]+=aux*x[2]/par[6];
 		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
 		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
-// 		printf("%e\t%e\t%e\n", r/par[5],r, aux);
+// 		printf("%e\t%e\t%e\n", r/par[5], par[5], aux);
 		
 		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
 		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -528,6 +524,44 @@ void force(double *x, double *a, double *par, int potential)
 		a[1]=aux*x[1]*par[2];
 		a[2]=aux*x[2]*par[3];
 	}else if(potential==6){
+        // Galactic potential + LMC
+        // par = [GMb, ab, GMd, ad, bd^2, GM, q^2, rhalo, GMlmc, Xlmc, Ylmc, Zlmc]
+        
+        //Hernquist bulge
+        r=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+        aux=-par[0]/(r * (r+par[1]) * (r+par[1]));
+        
+        a[0]=aux*x[0];
+        a[1]=aux*x[1];
+        a[2]=aux*x[2];
+        
+        //Miyamoto disk
+        aux2=sqrt(x[2]*x[2] + par[4]);
+        r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
+        aux=-par[2]/(r*r*r);
+        
+        a[0]+=aux*x[0];
+        a[1]+=aux*x[1];
+        a[2]+=aux*x[2]*(par[3] + aux2)/aux2;
+        
+        //Triaxial NFW Halo
+        r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
+        aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+        
+        a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
+        a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
+        a[2]+=aux*(2*par[9]*x[2]);
+        
+        // Point mass
+        // added softening ~8pc, assuming X_LMC~-0.8kpc
+        r=sqrt((x[0]-par[12])*(x[0]-par[12]) + (x[1]-par[13])*(x[1]-par[13]) + (x[2]-par[14])*(x[2]-par[14])) - 0.01*par[12];
+        aux = par[11]*pow(r,-3);
+        
+        a[0]+=aux*x[0];
+        a[1]+=aux*x[1];
+        a[2]+=aux*x[2];
+        
+    }else if(potential==7){
         // Galactic potential + LMC on a string
         // par = [GMb, ab, GMd, ad, bd^2, GM, q^2, rhalo, Mlmc, t]
         
@@ -631,7 +665,7 @@ void initpar(int potential, double *par, double *apar)
 		apar[0]=G*par[0];
 		
 	}else if(potential==4){
-		// Composite Galactic potential featuring a disk, bulge, and flattened NFW halo (from Johnston/Law/Majewski/Helmi)
+		// Composite Galactic potential featuring a disk, bulge, and triaxial NFW halo (from Johnston/Law/Majewski/Helmi)
 		// par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z]
 		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo]
 		double cosphi, sinphi; //, tq, tphi;
@@ -669,6 +703,32 @@ void initpar(int potential, double *par, double *apar)
 // 		par[5]=1.;
 // 		par[6]=1.;
 	}else if(potential==6){
+        // Galactic potential + LMC
+        // par = [GMb, ab, GMd, ad, bd, Vh, rhalo, phi, q1, q2, qz, Mlmc, Xlmc, Ylmc, Zlmc]
+        // apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, GMlmc, Xlmc, Ylmc, Zlmc]
+        double cosphi, sinphi;
+
+        apar[0]=G*par[0];
+        apar[1]=par[1];
+        
+        apar[2]=G*par[2];
+        apar[3]=par[3];
+        apar[4]=par[4]*par[4];
+        
+        cosphi=cos(par[7]);
+        sinphi=sin(par[7]);
+        apar[5]=par[5]*par[5]*par[6];
+        apar[6]=cosphi*cosphi/(par[8]*par[8]) + sinphi*sinphi/(par[9]*par[9]);
+        apar[7]=cosphi*cosphi/(par[9]*par[9]) + sinphi*sinphi/(par[8]*par[8]);
+        apar[8]=2*sinphi*cosphi*(1/(par[8]*par[8]) - 1/(par[9]*par[9]));
+        apar[9]=1/(par[10]*par[10]);
+        apar[10]=par[6];
+        
+        apar[11]=G*par[11];
+        apar[12]=par[12];
+        apar[13]=par[13];
+        apar[14]=par[14];
+    }else if(potential==7){
         // Galactic potential + LMC on a string
         // par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z, Mlmc]
         // apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, Mlmc, t]

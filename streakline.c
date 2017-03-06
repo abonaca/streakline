@@ -279,14 +279,11 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
 	// Backward integration (cluster only)
 	
 	if(integrator==0){
-// 		printf("%f\n", v[0]);
-// 		printf("%e %e %e %e %e %e\n", x[0], x[1], x[2], v[0], v[1], v[2]);
 		dostep1(x,v,apar,potential,dt,direction);
 		
 		// Record
 		t2n(x, x1, x2, x3, 0);
 		t2n(v, v1, v2, v3, 0);
-// 		printf("%e %e %e %e %e %e\n", x[0], x[1], x[2], v[0], v[1], v[2]);
 		imin=1;
 	}
 	for(i=imin;i<N;i++){
@@ -295,7 +292,6 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
 		// Record
 		t2n(x, x1, x2, x3, i);
 		t2n(v, v1, v2, v3, i);
-// 		printf("%f\t", x[0]);
 	}
 	if(integrator==0){
 		dostep1(x,v,apar,potential,dt,direction);
@@ -318,23 +314,15 @@ void dostep(double *x, double *v, double *par, int potential, double deltat, dou
 	
 	dts=sign*dt;			// Time step with a sign
 	Nstep=(int) (deltat/dt);	// Number of steps to evolve
-// 	if(deltat<dt){
-// 		Nstep=1;
-// 		dts=sign*deltat;
-// 	}
 
 	for(i=0;i<Nstep;i++){
 		// Forward the particle using the leapfrog integrator
 		for(j=0;j<3;j++)
 			xt[j]=x[j]+dts*v[j];
 		force(xt, at, par, potential);
-        if(potential==7) par[12]+=dts;
-// 		printf("acc: %e\t%e\n", at[0], at[1]);
-// 		printf("v0: %e\t%e\n", v[0], dts*at[0]);
-// 		printf("v1: %e\t%e\n", v[1], dts*at[1]);
+//         if(potential==7) par[12]+=dts;
 		for(j=0;j<3;j++)
 			vt[j]=v[j]+dts*at[j];
-// 		printf("v: %e\t%e\n", vt[0], vt[1]);
 		
 		// Update input vectors to current values
 		for(j=0;j<3;j++){
@@ -352,7 +340,7 @@ void dostep1(double *x, double *v, double *par, int potential, double deltat, do
 	
 	dts=sign*dt;
 	force(x, a, par, potential);
-    if(potential==7) par[12]+=dts;
+//     if(potential==7) par[12]+=dts;
 
 	v[0]=v[0]+0.5*dts*a[0];
 	v[1]=v[1]+0.5*dts*a[1];
@@ -422,7 +410,7 @@ void dostep_stream(double *xc, double *x, double *v, double *par, int potential,
 			xr[j]=xc[j]-xt[j];
 		}
 		force(xt, at, par, potential);
-//         if(potential==6) par[12]+=dts;
+//         if(potential==7) par[12]+=dts;
         force_plummer(xr,ar,Mcl);
 		for(j=0;j<3;j++)
 			vt[j]=v[j]+dts*(at[j]+ar[j]);
@@ -435,7 +423,7 @@ void dostep_stream(double *xc, double *x, double *v, double *par, int potential,
 	}
 }
 
-void force(double *x, double *a, double *par, int potential, double t)
+void force(double *x, double *a, double *par, int potential)
 {
 	int i;
 	double r, aux, aux2;
@@ -463,7 +451,6 @@ void force(double *x, double *a, double *par, int potential, double t)
 		// par = [Vc^2, c1, c2, c3, c4, rhalo^2]
 		r=par[1]*x[0]*x[0] + par[2]*x[1]*x[1] + par[3]*x[0]*x[1] + par[4]*x[2]*x[2] + par[5];
 		aux=-par[0]/r;
-// 		printf("%e\t%e\n", r, aux);
 		
 		a[0]=aux*(2*par[1]*x[0] + par[3]*x[1]);
 		a[1]=aux*(2*par[2]*x[1] + par[3]*x[0]);
@@ -474,13 +461,10 @@ void force(double *x, double *a, double *par, int potential, double t)
 		// par = [GM, c1, c2, c3, c4, rhalo]
 		r=sqrt(par[1]*x[0]*x[0] + par[2]*x[1]*x[1] + par[3]*x[0]*x[1] + par[4]*x[2]*x[2]);
 		aux=0.5 * par[0]*pow(r,-3) * (1./(1.+par[5]/r)-log(1.+r/par[5]));
-// 		printf("%e\t%e\t%e\n", r/par[5],r, aux);
 		
 		a[0]=aux*(2*par[1]*x[0] + par[3]*x[1]);
 		a[1]=aux*(2*par[2]*x[1] + par[3]*x[0]);
 		a[2]=aux*(2*par[4]*x[2]);
-// 		printf("%e\n", a[0]);
-// 		printf("%e, %e, %e %e %e\n", a[0], x[0], r, par[0], par[5]);
 		
 	}else if(potential==4){
 		// Composite Galactic potential featuring a disk, bulge, and flattened NFW halo (from Johnston/Law/Majewski/Helmi)
@@ -506,13 +490,10 @@ void force(double *x, double *a, double *par, int potential, double t)
 		//Triaxial NFW Halo
 		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
 		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
-// 		printf("%e\t%e\t%e\n", r/par[5], par[5], aux);
 		
 		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
 		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
 		a[2]+=aux*(2*par[9]*x[2]);
-		
-// 		printf("%e, %e, %e %e %e\n", a[0], x[0], r, par[5], par[7]);
 		
 	}else if(potential==5){
 		// Spherical NFW potential
@@ -656,9 +637,7 @@ void initpar(int potential, double *par, double *apar)
 		apar[3]=2*sinphi*cosphi*(1/(par[3]*par[3]) - 1/(par[4]*par[4]));
 		apar[4]=1/(par[5]*par[5]);
 		apar[5]=par[1];
-// 		printf("%e, %e, %e, %e, %e, %e\n", par[0], par[1], par[2], par[3], par[4], par[5]);
-// 		printf("%e, %e, %e, %e, %e, %e\n", apar[0], apar[1], apar[2], apar[3], apar[4], apar[5]);
-		
+
 	}else if(potential==0){
 		// Point mass potential, par = [Mtot]
 		// apar = [G*Mtot]
@@ -670,20 +649,11 @@ void initpar(int potential, double *par, double *apar)
 		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo]
 		double cosphi, sinphi; //, tq, tphi;
 		
-		//tq = sqrt(par[7]*par[7] + par[8]*par[8]);
-		//tphi = atan(par[8]/par[7]);
-		//par[7] = tphi;
-		//par[8] = tq;
-		//printf("%f %f\n", par[7], par[8]);
-		
 		apar[0]=G*par[0];
 		apar[1]=par[1];
 		apar[2]=G*par[2];
 		apar[3]=par[3];
 		apar[4]=par[4]*par[4];
-// 		apar[5]=G*Msun*pow(10,par[5]);
-// 		apar[6]=par[6]*par[6];
-// 		apar[7]=par[7];
 		
 		cosphi=cos(par[7]);
 		sinphi=sin(par[7]);
@@ -694,14 +664,13 @@ void initpar(int potential, double *par, double *apar)
 		apar[8]=2*sinphi*cosphi*(1/(par[8]*par[8]) - 1/(par[9]*par[9]));
 		apar[9]=1/(par[10]*par[10]);
 		apar[10]=par[6];
-// 		printf("%e %e %e %e\n", apar[5]/G, apar[5], apar[6], apar[7]);
-	}else if(potential==5){
+
+    }else if(potential==5){
 		apar[0]=G*Msun*pow(10,par[0]);
 		apar[1]=par[1];
 		apar[2]=par[5]*par[5];
 		apar[3]=par[6]*par[6];
-// 		par[5]=1.;
-// 		par[6]=1.;
+
 	}else if(potential==6){
         // Galactic potential + LMC
         // par = [GMb, ab, GMd, ad, bd, Vh, rhalo, phi, q1, q2, qz, Mlmc, Xlmc, Ylmc, Zlmc]
@@ -734,24 +703,14 @@ void initpar(int potential, double *par, double *apar)
         // apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, Mlmc, t]
         double cosphi, sinphi; //, tq, tphi;
         
-        //tq = sqrt(par[7]*par[7] + par[8]*par[8]);
-        //tphi = atan(par[8]/par[7]);
-        //par[7] = tphi;
-        //par[8] = tq;
-        //printf("%f %f\n", par[7], par[8]);
-        
         apar[0]=G*par[0];
         apar[1]=par[1];
         apar[2]=G*par[2];
         apar[3]=par[3];
         apar[4]=par[4]*par[4];
-//      apar[5]=G*Msun*pow(10,par[5]);
-//      apar[6]=par[6]*par[6];
-//      apar[7]=par[7];
         
         cosphi=cos(par[7]);
         sinphi=sin(par[7]);
-        
         apar[5]=par[5]*par[5]*par[6];
         apar[6]=cosphi*cosphi/(par[8]*par[8]) + sinphi*sinphi/(par[9]*par[9]);
         apar[7]=cosphi*cosphi/(par[9]*par[9]) + sinphi*sinphi/(par[8]*par[8]);
@@ -790,11 +749,8 @@ double jacobi(double *x, double *v, double *par, int potential, double Mcl)
 	force(x2, a2, par, potential);
 	for(i=0;i<3;i++){
 		dx[i]=x1[i]-x2[i];
-// 		da[i]=a1[i]-a2[i];
 	}
-// 	dpot=len(da)/len(dx);
 	dpot=(len(a1)-len(a2))/len(dx);
-// 	printf("%e\n",len(dx)/kpc);
 	
 	// Jacobi radius
 	R=pow(G*Mcl/fabs(om*om+dpot),1./3.);

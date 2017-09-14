@@ -36,7 +36,7 @@ extern double Mcli, Mclf, Rcl, dt;
 #define kpc 3.08567758e19	// kpc in m
 #define kms 1e3			// km/s in m/s
 #define Msun 1.99e30		// Mass of the Sun
-//#define pi 3.14159265359
+#define pi 3.14159265359
 
 // NR random generator definitions
 #define Nnr 90

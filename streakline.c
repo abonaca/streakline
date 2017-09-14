@@ -6,9 +6,18 @@ double Mcli, Mclf, Rcl, dt;
 int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double *xp1, double *xp2, double *xp3, double *vm1, double *vm2, double *vm3, double *vp1, double *vp2, double *vp3, double *par, double *offset, int potential, int integrator, int N, int M, double mcli, double mclf, double rcl, double dt_)
 {
 	int i,j, k=0, Napar, Ne, imin=0;
-	double x[3], v[3], xs[3], vs[3], omega[3], om, sign=1., back=-1., r, rp, rm, vtot, vlead, vtrail, dM, Mcl, dR, dRRj;
+	double x[3], v[3], xs[3], vs[3], omega[3], om, sign=1., back=-1., r, rp, rm, vtot, vlead, vtrail, dM, Mcl, dR, dRRj, time=0.;
 	double *xc1, *xc2, *xc3, *Rj, *dvl, *dvt;
 	long s1=560;
+    
+    double xlmc[3], vlmc[3] = {262000, 465000, 56000};
+    if (potential==6){
+        for(j=0;j<3;j++){
+            xlmc[j] = par[12+j];
+//             printf("%e ", xlmc[j]);
+        }
+//         printf("\n");
+    }
 	
 	// number of output particles
 	Ne=ceil((float)N/(float)M);
@@ -30,7 +39,7 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 	dM = (Mcli-Mclf)/(double)N;
 	
 	// Cluster size
-	Rcl =rcl;
+	Rcl = rcl;
 	
 	// Position offset
 	dR = offset[0];
@@ -64,11 +73,18 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
         Napar=15;
     }else if(potential==7){
         Napar=13;
+    }else if(potential==8){
+        Napar=14;
     }else{
 		Napar=1;
 	}
-	double apar[Napar];
+	double apar[Napar], apar_aux[11];
 	initpar(potential, par, apar);
+    
+    if(potential==6){
+        for(i=0;i<11;i++)
+            apar_aux[i] = apar[i];
+    }
 	
 	// Integrator switch
 	void (*pt2dostep)(double*, double*, double*, int, double, double) = NULL;
@@ -89,16 +105,45 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 	// Backward integration (cluster only)
     
 	if(integrator==0){
-// 		printf("%f\n", v[0]);
 		dostep1(x,v,apar,potential,dt,back);
-// 		printf("%f\n", v[0]);
 		imin=1;
+        time = time + dt*back;
+        
+        if(potential==6){
+            dostep1(xlmc,vlmc,apar_aux,4,dt,back);
+            for(j=0;j<3;j++){
+                apar[12+j] = xlmc[j];
+//                 printf("%e ", xlmc[i]);
+            }
+//             printf("\n");
+        }
 	}
 	for(i=imin;i<N;i++){
 		(*pt2dostep)(x,v,apar,potential,dt,back);
+        time = time + dt*back;
+        
+        if(potential==6){
+            (*pt2dostep)(xlmc,vlmc,apar_aux,4,dt,back);
+            for(j=0;j<3;j++){
+                apar[12+j] = xlmc[j];
+//                 printf("%e ", xlmc[j]);
+            }
+//             printf("%d\n", i);
+        }
 	}
-	if(integrator==0)
+	if(integrator==0){
 		dostep1(x,v,apar,potential,dt,back);
+        if(potential==6){
+            dostep1(xlmc,vlmc,apar_aux,4,dt,back);
+            for(i=0;i<3;i++){
+                apar[12+i] = xlmc[i];
+//                 printf("%e ", xlmc[i]);
+            }
+//             printf("\n");
+        }
+    }
+    
+//     printf("%e", time);
 	
 	////////////////////////////////////////////
 	// Forward integration (cluster and stream)
@@ -108,9 +153,23 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 		dostep1(x,v,apar,potential,dt,sign);
 		for(j=0;j<3;j++)
 			x[j]=x[j]-dt*v[j];
+        
+        if(potential==6){
+            dostep1(xlmc,vlmc,apar_aux,4,dt,sign);
+            for(j=0;j<3;j++)
+                xlmc[j]=xlmc[j]-dt*vlmc[j];
+            for(j=0;j<3;j++)
+                apar[12+j] = xlmc[j];
+        }
 	
 		dostep(x,v,apar,potential,dt,sign);
 		imin=1;
+        
+        if(potential==6){
+            dostep(xlmc,vlmc,apar_aux,4,dt,sign);
+            for(i=0;j<3;j++)
+                apar[12+j] = xlmc[j];
+        }
 		
 		// Update output arrays
 		t2n(x, xc1, xc2, xc3, 0);
@@ -147,6 +206,8 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 		vp2[k]=v[1]*vtrail + dvt[k]*x[1];
 		vp3[k]=v[2]*vtrail + dvt[k]*x[2];
 		k++;
+        
+        time = time + dt*sign;
 	}
 
 	// Subsequent steps
@@ -154,6 +215,12 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 		Mcl-=dM;
 		
 		(*pt2dostep)(x,v,apar,potential,dt,sign);
+        
+        if(potential==6){
+            (*pt2dostep)(xlmc,vlmc,apar_aux,4,dt,sign);
+            for(j=0;j<3;j++)
+                apar[12+j] = xlmc[j];
+        }
 
         // Store cluster position
 		t2n(x, xc1, xc2, xc3, i);
@@ -220,10 +287,24 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 			vp3[k]=v[2]*vtrail + dvt[k]*x[2];
 			k++;
 		}
+		
+		time = time + dt*sign;
 	}
 	
-	if (integrator==0)
+//     printf("%e\n", time);
+	
+    if (integrator==0){
 		dostep1(x,v,apar,potential,dt,back);
+    
+        if(potential==6){
+            dostep1(xlmc,vlmc,apar_aux,4,dt,back);
+            for(i=0;i<3;i++){
+                apar[12+i] = xlmc[i];
+//                 printf("%e ", xlmc[i]);
+            }
+//             printf("\n");
+        }
+    }
 	
 	// Free memory
 	free(xc1);
@@ -258,6 +339,8 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
         Napar=15;
     }else if(potential==7){
         Napar=13;
+    }else if(potential==8){
+        Napar=14;
     }else{
         Napar=1;
     }
@@ -361,9 +444,6 @@ void dostep_rk(double *x, double *v, double *par, int potential, double deltat, 
 	double xt1[3], xt2[3], xt3[3], vt1[3], vt2[3], vt3[3], a[3], at1[3], at2[3], at3[3], dts, dt2;
 	
 	dts=sign*dt;			// Time step with a sign
-// 	if(deltat<dt){
-// 		dts=sign*deltat;
-// 	}
 	dt2=dts/2.;
 	
 	// Initial values
@@ -558,7 +638,7 @@ void force(double *x, double *a, double *par, int potential)
         a[1]=aux*x[1];
         a[2]=aux*x[2];
         
-        //Miyamato disk
+        //Miyamoto disk
         aux2=sqrt(x[2]*x[2] + par[4]);
         r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
         aux=-par[2]/(r*r*r);
@@ -584,6 +664,39 @@ void force(double *x, double *a, double *par, int potential)
         a[0]+=aux*x[0];
         a[1]+=aux*x[1];
         a[2]+=aux*x[2];
+    }else if(potential==8){
+		// Composite Galactic potential featuring a disk, bulge, flattened NFW halo (from Johnston/Law/Majewski/Helmi) and perturbations from dipole expansion
+		// par = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, a10, a11, a12]
+		
+		//Hernquist bulge
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+		aux=-par[0]/(r * (r+par[1]) * (r+par[1]));
+		
+		a[0]=aux*x[0];
+		a[1]=aux*x[1];
+		a[2]=aux*x[2];
+		
+		//Miyamoto-Nagai disk
+		aux2=sqrt(x[2]*x[2] + par[4]);
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
+		aux=-par[2]/(r*r*r);
+		
+		a[0]+=aux*x[0];
+		a[1]+=aux*x[1];
+		a[2]+=aux*x[2]*(par[3] + aux2)/aux2;
+		
+		//Triaxial NFW Halo
+		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
+		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		
+		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
+		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
+		a[2]+=aux*(2*par[9]*x[2]);
+        
+        // Dipole moment
+        a[0]+=par[13];
+        a[1]+=par[11];
+        a[2]+=par[12];
     }
 }
 
@@ -722,8 +835,34 @@ void initpar(int potential, double *par, double *apar)
         apar[9]=1/(par[10]*par[10]);
         apar[10]=par[6];
         apar[11]=G*par[11];
-        printf("%e\n", par[11]);
+//         printf("%e\n", par[11]);
         apar[12]=0.;
+    }else if(potential==8){
+		// Composite Galactic potential featuring a disk, bulge, and triaxial NFW halo (from Johnston/Law/Majewski/Helmi)
+		// par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z, a10, a11, a12]
+		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, fa10, fa11, fa12]
+		double cosphi, sinphi, f; //, tq, tphi;
+		
+		apar[0]=G*par[0];
+		apar[1]=par[1];
+		apar[2]=G*par[2];
+		apar[3]=par[3];
+		apar[4]=par[4]*par[4];
+		
+		cosphi=cos(par[7]);
+		sinphi=sin(par[7]);
+		
+		apar[5]=par[5]*par[5]*par[6];
+		apar[6]=cosphi*cosphi/(par[8]*par[8]) + sinphi*sinphi/(par[9]*par[9]);
+		apar[7]=cosphi*cosphi/(par[9]*par[9]) + sinphi*sinphi/(par[8]*par[8]);
+		apar[8]=2*sinphi*cosphi*(1/(par[8]*par[8]) - 1/(par[9]*par[9]));
+		apar[9]=1/(par[10]*par[10]);
+		apar[10]=par[6];
+        
+        f = sqrt(3./(4*pi));
+        apar[11] = f*par[11];
+        apar[12] = f*par[12];
+        apar[13] = f*par[13];
     }
 }
 

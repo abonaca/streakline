@@ -75,6 +75,8 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
         Napar=13;
     }else if(potential==8){
         Napar=14;
+    }else if(potential==9){
+        Napar=19;
     }else{
 		Napar=1;
 	}
@@ -341,6 +343,8 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
         Napar=13;
     }else if(potential==8){
         Napar=14;
+    }else if(potential==9){
+        Napar=19;
     }else{
         Napar=1;
     }
@@ -697,6 +701,44 @@ void force(double *x, double *a, double *par, int potential)
         a[0]+=par[13];
         a[1]+=par[11];
         a[2]+=par[12];
+    }else if(potential==9){
+		// Composite Galactic potential featuring a disk, bulge, flattened NFW halo (from Johnston/Law/Majewski/Helmi) and perturbations from dipole and quadrupole moment
+		// par = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, a10, a11, a12, a20, a21, a22, a23, a24]
+		
+		//Hernquist bulge
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+		aux=-par[0]/(r * (r+par[1]) * (r+par[1]));
+		
+		a[0]=aux*x[0];
+		a[1]=aux*x[1];
+		a[2]=aux*x[2];
+		
+		//Miyamoto-Nagai disk
+		aux2=sqrt(x[2]*x[2] + par[4]);
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
+		aux=-par[2]/(r*r*r);
+		
+		a[0]+=aux*x[0];
+		a[1]+=aux*x[1];
+		a[2]+=aux*x[2]*(par[3] + aux2)/aux2;
+		
+		//Triaxial NFW Halo
+		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
+		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		
+		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
+		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
+		a[2]+=aux*(2*par[9]*x[2]);
+        
+        // Dipole moment
+        a[0]+=par[13];
+        a[1]+=par[11];
+        a[2]+=par[12];
+        
+        // Quadrupole moment
+        a[0]+= x[0]*(par[18] - par[16]) + x[1]*par[14] + x[2]*par[17];
+        a[1]+= x[0]*par[14] - x[1]*(par[16] + par[18]) + x[2]*par[15];
+        a[2]+= x[0]*par[17] + x[1]*par[15] + x[2]*2*par[16];
     }
 }
 
@@ -863,6 +905,39 @@ void initpar(int potential, double *par, double *apar)
         apar[11] = f*par[11];
         apar[12] = f*par[12];
         apar[13] = f*par[13];
+    }else if(potential==9){
+		// Composite Galactic potential featuring a disk, bulge, and triaxial NFW halo (from Johnston/Law/Majewski/Helmi)
+		// par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z, a10, a11, a12, a20, a21, a22, a23, a24]
+		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, fa10, fa11, fa12, fa20, fa21, fa22, fa23, fa24]
+		double cosphi, sinphi, f; //, tq, tphi;
+		
+		apar[0]=G*par[0];
+		apar[1]=par[1];
+		apar[2]=G*par[2];
+		apar[3]=par[3];
+		apar[4]=par[4]*par[4];
+		
+		cosphi=cos(par[7]);
+		sinphi=sin(par[7]);
+		
+		apar[5]=par[5]*par[5]*par[6];
+		apar[6]=cosphi*cosphi/(par[8]*par[8]) + sinphi*sinphi/(par[9]*par[9]);
+		apar[7]=cosphi*cosphi/(par[9]*par[9]) + sinphi*sinphi/(par[8]*par[8]);
+		apar[8]=2*sinphi*cosphi*(1/(par[8]*par[8]) - 1/(par[9]*par[9]));
+		apar[9]=1/(par[10]*par[10]);
+		apar[10]=par[6];
+        
+        f = sqrt(3./(4*pi));
+        apar[11] = f*par[11];
+        apar[12] = f*par[12];
+        apar[13] = f*par[13];
+        
+        f = 0.5*sqrt(15./pi);
+        apar[14] = f*par[14];
+        apar[15] = f*par[15];
+        apar[16] = f/sqrt(3.)*par[16];
+        apar[17] = f*par[17];
+        apar[18] = f*par[18];
     }
 }
 

@@ -3,6 +3,9 @@
 // Simulation parameters
 double Mcli, Mclf, Rcl, dt;
 
+// potential definitions
+int par_perpotential[11] = {1, 3, 6, 6, 11, 4, 15, 13, 14, 19, 26};
+
 int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double *xp1, double *xp2, double *xp3, double *vm1, double *vm2, double *vm3, double *vp1, double *vp2, double *vp3, double *par, double *offset, int potential, int integrator, int N, int M, double mcli, double mclf, double rcl, double dt_)
 {
 	int i,j, k=0, Napar, Ne, imin=0;
@@ -61,25 +64,7 @@ int stream(double *x0, double *v0, double *xm1, double *xm2, double *xm3, double
 	}
 	
 	// Set up actual potential parameters;
-	if(potential==1){
-		Napar=3;
-	}else if(potential==2 || potential==3){
-		Napar=6;
-	}else if(potential==4){
-		Napar=11;
-	}else if(potential==5){
-		Napar=4;
-	}else if(potential==6){
-        Napar=15;
-    }else if(potential==7){
-        Napar=13;
-    }else if(potential==8){
-        Napar=14;
-    }else if(potential==9){
-        Napar=19;
-    }else{
-		Napar=1;
-	}
+	Napar = par_perpotential[potential];
 	double apar[Napar], apar_aux[11];
 	initpar(potential, par, apar);
     
@@ -329,25 +314,7 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
 	t2t(v0, v);
 	
     // Set up actual potential parameters;
-    if(potential==1){
-        Napar=3;
-    }else if(potential==2 || potential==3){
-        Napar=6;
-    }else if(potential==4){
-        Napar=11;
-    }else if(potential==5){
-        Napar=4;
-    }else if(potential==6){
-        Napar=15;
-    }else if(potential==7){
-        Napar=13;
-    }else if(potential==8){
-        Napar=14;
-    }else if(potential==9){
-        Napar=19;
-    }else{
-        Napar=1;
-    }
+    Napar = par_perpotential[potential];
 	double apar[Napar];
 	initpar(potential, par, apar);
 	
@@ -367,7 +334,7 @@ int orbit(double *x0, double *v0, double *x1, double *x2, double *x3, double *v1
 	dt = dt_;
 	
 	///////////////////////////////////////
-	// Backward integration (cluster only)
+	// Orbit integration
 	
 	if(integrator==0){
 		dostep1(x,v,apar,potential,dt,direction);
@@ -411,8 +378,8 @@ void dostep(double *x, double *v, double *par, int potential, double deltat, dou
 		for(j=0;j<3;j++)
 			xt[j]=x[j]+dts*v[j];
 		force(xt, at, par, potential);
-//         if(potential==7) par[12]+=dts;
-		for(j=0;j<3;j++)
+
+        for(j=0;j<3;j++)
 			vt[j]=v[j]+dts*at[j];
 		
 		// Update input vectors to current values
@@ -431,7 +398,6 @@ void dostep1(double *x, double *v, double *par, int potential, double deltat, do
 	
 	dts=sign*dt;
 	force(x, a, par, potential);
-//     if(potential==7) par[12]+=dts;
 
 	v[0]=v[0]+0.5*dts*a[0];
 	v[1]=v[1]+0.5*dts*a[1];
@@ -548,7 +514,7 @@ void force(double *x, double *a, double *par, int potential)
 		// Triaxial NFW halo potential, parameters similar to Law & Majewski (2010)
 		// par = [GM, c1, c2, c3, c4, rhalo]
 		r=sqrt(par[1]*x[0]*x[0] + par[2]*x[1]*x[1] + par[3]*x[0]*x[1] + par[4]*x[2]*x[2]);
-		aux=0.5 * par[0]*pow(r,-3) * (1./(1.+par[5]/r)-log(1.+r/par[5]));
+		aux=0.5 * par[0] / (r*r*r) * (1./(1.+par[5]/r)-log(1.+r/par[5]));
 		
 		a[0]=aux*(2*par[1]*x[0] + par[3]*x[1]);
 		a[1]=aux*(2*par[2]*x[1] + par[3]*x[0]);
@@ -577,7 +543,7 @@ void force(double *x, double *a, double *par, int potential)
 		
 		//Triaxial NFW Halo
 		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
-		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
 		
 		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
 		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -587,7 +553,7 @@ void force(double *x, double *a, double *par, int potential)
 		// Spherical NFW potential
 		// par = [GM, Rh]
 		r=sqrt(x[0]*x[0] + x[1]*x[1]*par[2] + x[2]*x[2]*par[3]);
-		aux=par[0]*pow(r,-3) * (1./(1.+par[1]/r)-log(1.+r/par[1]));
+		aux=par[0]/(r*r*r) * (1./(1.+par[1]/r)-log(1.+r/par[1]));
 		
 		a[0]=aux*x[0];
 		a[1]=aux*x[1]*par[2];
@@ -615,7 +581,7 @@ void force(double *x, double *a, double *par, int potential)
         
         //Triaxial NFW Halo
         r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
-        aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+        aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
         
         a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
         a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -624,7 +590,7 @@ void force(double *x, double *a, double *par, int potential)
         // Point mass
         // added softening ~8pc, assuming X_LMC~-0.8kpc
         r=sqrt((x[0]-par[12])*(x[0]-par[12]) + (x[1]-par[13])*(x[1]-par[13]) + (x[2]-par[14])*(x[2]-par[14])) - 0.01*par[12];
-        aux = par[11]*pow(r,-3);
+        aux = par[11]/(r*r*r);
         
         a[0]+=aux*x[0];
         a[1]+=aux*x[1];
@@ -653,7 +619,7 @@ void force(double *x, double *a, double *par, int potential)
         
         //Triaxial NFW Halo
         r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
-        aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+        aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
         
         a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
         a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -663,7 +629,7 @@ void force(double *x, double *a, double *par, int potential)
         double xlmc[3]={-2.509654716638902e19, -1.2653311505262738e21, -8.319850498177284e20};
         double vlmc[3]={-57, -226, 221};
         r=sqrt((x[0]-xlmc[0]-vlmc[0]*par[12])*(x[0]-xlmc[0]-vlmc[0]*par[12]) + (x[1]-xlmc[1]-vlmc[1]*par[12])*(x[1]-xlmc[1]-vlmc[1]*par[12]) + (x[2]-xlmc[2]-vlmc[2]*par[12])*(x[2]-xlmc[2]-vlmc[2]*par[12]));
-        aux=-par[11] * pow(r,-3);
+        aux=-par[11]/(r*r*r);
         
         a[0]+=aux*x[0];
         a[1]+=aux*x[1];
@@ -691,7 +657,7 @@ void force(double *x, double *a, double *par, int potential)
 		
 		//Triaxial NFW Halo
 		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
-		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
 		
 		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
 		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -724,7 +690,7 @@ void force(double *x, double *a, double *par, int potential)
 		
 		//Triaxial NFW Halo
 		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
-		aux=0.5 * par[5]*pow(r,-3) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
 		
 		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
 		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
@@ -739,6 +705,49 @@ void force(double *x, double *a, double *par, int potential)
         a[0]+= x[0]*(par[18] - par[16]) + x[1]*par[14] + x[2]*par[17];
         a[1]+= x[0]*par[14] - x[1]*(par[16] + par[18]) + x[2]*par[15];
         a[2]+= x[0]*par[17] + x[1]*par[15] + x[2]*2*par[16];
+    }else if(potential==10){
+		// Composite Galactic potential featuring a disk, bulge, flattened NFW halo (from Johnston/Law/Majewski/Helmi) and perturbations from dipole, quadrupole and octupole moments
+		// par = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, a10, a11, a12, a20, a21, a22, a23, a24, a30, a31, a32, a33, a34, a35, a36]
+		
+		//Hernquist bulge
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+		aux=-par[0]/(r * (r+par[1]) * (r+par[1]));
+		
+		a[0]=aux*x[0];
+		a[1]=aux*x[1];
+		a[2]=aux*x[2];
+		
+		//Miyamoto-Nagai disk
+		aux2=sqrt(x[2]*x[2] + par[4]);
+		r=sqrt(x[0]*x[0] + x[1]*x[1] + (par[3] + aux2) * (par[3] + aux2));
+		aux=-par[2]/(r*r*r);
+		
+		a[0]+=aux*x[0];
+		a[1]+=aux*x[1];
+		a[2]+=aux*x[2]*(par[3] + aux2)/aux2;
+		
+		//Triaxial NFW Halo
+		r=sqrt(par[6]*x[0]*x[0] + par[7]*x[1]*x[1] + par[8]*x[0]*x[1] + par[9]*x[2]*x[2]);
+		aux=0.5 * par[5]/(r*r*r) * (1./(1.+par[10]/r)-log(1.+r/par[10]));
+		
+		a[0]+=aux*(2*par[6]*x[0] + par[8]*x[1]);
+		a[1]+=aux*(2*par[7]*x[1] + par[8]*x[0]);
+		a[2]+=aux*(2*par[9]*x[2]);
+        
+        // Dipole moment
+        a[0]+=par[13];
+        a[1]+=par[11];
+        a[2]+=par[12];
+        
+        // Quadrupole moment
+        a[0]+= x[0]*(par[18] - par[16]) + x[1]*par[14] + x[2]*par[17];
+        a[1]+= x[0]*par[14] - x[1]*(par[16] + par[18]) + x[2]*par[15];
+        a[2]+= x[0]*par[17] + x[1]*par[15] + x[2]*2*par[16];
+        
+        // Octupole moment
+        a[0]+= par[19]*6.*x[0]*x[1] + par[20]*x[1]*x[2] + par[21]*(-2.*x[0]*x[1]) + par[22]*(-6.*x[0]*x[2]) + par[23]*(4.*x[2]*x[2] - x[1]*x[1] - 3.*x[0]*x[0]) + par[24]*2.*x[0]*x[2] + par[25]*3.*(x[0]*x[0] - x[1]*x[1]);
+        a[1]+= par[19]*3.*(x[0]*x[0] - x[1]*x[1]) + par[20]*x[0]*x[2] + par[21]*(4.*x[2]*x[2] - x[0]*x[0] - 3.*x[1]*x[1]) + par[22]*(-6.*x[1]*x[2]) + par[23]*(-2.*x[0]*x[1]) + par[24]*(-2.*x[1]*x[2]) + par[25]*(-6.*x[0]*x[1]);
+        a[2]+= par[20]*x[0]*x[1] + par[21]*8.*x[1]*x[2] + par[22]*(6.*x[2]*x[2] - 3.*x[0]*x[0] - 3.*x[1]*x[1]) + par[23]*8*x[0]*x[2] + par[24]*(x[0]*x[0] - x[1]*x[1]);
     }
 }
 
@@ -938,6 +947,56 @@ void initpar(int potential, double *par, double *apar)
         apar[16] = f/sqrt(3.)*par[16];
         apar[17] = f*par[17];
         apar[18] = f*par[18];
+    }else if(potential==10){
+        // Composite Galactic potential featuring a disk, bulge, and triaxial NFW halo (from Johnston/Law/Majewski/Helmi)
+		// par = [GMb, ab, GMd, ad, bd, V, rhalo, phi, q_1, q_2, q_z, a10, a11, a12, a20, a21, a22, a23, a24, a30, a31, a32, a33, a34, a35, a36]
+		// apar = [GMb, ab, GMd, ad, bd^2, GM, c1, c2, c3, c4, rhalo, fa10, fa11, fa12, fa20, fa21, fa22, fa23, fa24, fa30, fa31, fa32, fa33, fa34, fa35, fa36]
+		double cosphi, sinphi, f; //, tq, tphi;
+		
+		apar[0]=G*par[0];
+		apar[1]=par[1];
+		apar[2]=G*par[2];
+		apar[3]=par[3];
+		apar[4]=par[4]*par[4];
+		
+		cosphi=cos(par[7]);
+		sinphi=sin(par[7]);
+		
+		apar[5]=par[5]*par[5]*par[6];
+		apar[6]=cosphi*cosphi/(par[8]*par[8]) + sinphi*sinphi/(par[9]*par[9]);
+		apar[7]=cosphi*cosphi/(par[9]*par[9]) + sinphi*sinphi/(par[8]*par[8]);
+		apar[8]=2*sinphi*cosphi*(1/(par[8]*par[8]) - 1/(par[9]*par[9]));
+		apar[9]=1/(par[10]*par[10]);
+		apar[10]=par[6];
+        
+        // dipole
+        f = sqrt(3./(4*pi));
+        apar[11] = f*par[11];
+        apar[12] = f*par[12];
+        apar[13] = f*par[13];
+        
+        // quadrupole
+        f = 0.5*sqrt(15./pi);
+        apar[14] = f*par[14];
+        apar[15] = f*par[15];
+        apar[16] = f/sqrt(3.)*par[16];
+        apar[17] = f*par[17];
+        apar[18] = f*par[18];
+        
+        // octupole
+        f = 0.25*sqrt(35./(2.*pi));
+        apar[19] = f*par[19];
+        apar[25] = f*par[25];
+        
+        f = 0.25*sqrt(105./pi);
+        apar[20] = f*par[20]*2.;
+        apar[24] = f*par[24];
+        
+        f = 0.25*sqrt(21./(2.*pi));
+        apar[21] = f*par[21];
+        apar[23] = f*par[23];
+        
+        apar[22] = 0.25*sqrt(7./pi)*par[22];
     }
 }
 

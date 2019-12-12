@@ -205,10 +205,9 @@ static PyObject *streakline_orbit(PyObject *self, PyObject *args)
 	v3 = pyvector_to_Carrayptrs(py_v3);
 
 	// Call the external C function to calculate the geostationary orbit.
-// 	printf("before %lf", x1[0]);
+// 	printf("before %e\n", x1[0]);
 	err = orbit(x0, v0, x1, x2, x3, v1, v2, v3, par, potential, integrator, N, dt_, direction);
-	
-// 	printf("after %lf %d", x1[0]);
+// 	printf("after %e\n", x1[0]);
 
 	// Check if error raised
 	if(err!=0) {

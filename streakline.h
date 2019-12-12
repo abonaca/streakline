@@ -11,6 +11,7 @@ int back(double *x0, double *v0, double *xf, double *vf, double *par, double hp,
 
 void dostep(double *x, double *v, double *par, int potential, double deltat, double sign);
 void dostep1(double *x, double *v, double *par, int potential, double deltat, double sign);
+
 void dostep_stream(double *xc, double *x, double *v, double *par, int potential, double Mcl, double deltat, double sign);
 void dostep_rk(double *x, double *v, double *par, int potential, double deltat, double sign);
 
